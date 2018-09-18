@@ -1,45 +1,23 @@
-TARGETNAME	:= main
-TARGETTYPE	:= APP
+ifeq ($(shell uname -s), Linux)
+export OSTYPE = linux
+endif
 
-CC	:=	$(CROSS_COMPLIER)gcc
-CXX	:=	$(CROSS_COMPLIER)g++
-LD	:=	$(CXX)
-AR	:=	$(CROSS_COMPLIER)ar
-OBJCOPY	:=	$(CROSS_COMPLIER)objcopy
-
-CFLAGS	= -Wall -O0 -g
-CXXFLAGS	=
-LDFLAGS	=
-ARFLAGS	=
-INCLUDE_DIRS	=	include
-LIBRARY_DIRS	=	lib
-LIBTYPE	:= 
-LIBRARY_NAMES	=	
-BINARYDIR	:=	Debug
-SRCDIR	:=	src
-
-PRIMARY_OUTPUTS	:= $(BINARYDIR)/$(TARGETNAME)
-SOURCEFILES	:= main.c
-all_objs	= $(all_make_files:src/%.c=$(BINARYDIR)/%.o)
-all_make_files	:= $(addprefix $(SRCDIR)/, $(SOURCEFILES))
-
-CFLAGS	+= $(addprefix -,$(LIBTYPE))
-CFLAGS	+= $(addprefix -I,$(INCLUDE_DIRS))
-LIBRARY_LDFLAGS	= $(addprefix -l,$(LIBRARY_NAMES))
-LDFLAGS	+= $(addprefix -L,$(LIBRARY_DIRS))
-
-all:mkdir do_all $(PRIMARY_OUTPUTS)
-mkdir:
-	@mkdir $(BINARYDIR) -p
-.PHONY:mkdir
-do_all:$(all_objs)
-$(all_objs):$(BINARYDIR)/%.o:$(SRCDIR)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
-$(BINARYDIR)/$(TARGETNAME):$(all_objs)
-	$(CC) -o $@ $(LDFLAGS) $(all_objs) $(LIBRARY_LDFLAGS)
-.PHONY:do_all all
-
+ifeq ($(OSTYPE),linux)
+export ROOT = $(shell pwd)
+include $(ROOT)/config.$(OSTYPE).mk
+export BINARYDIR = $(ROOT)/$(OUTPUTDIR)/bin
+export LIBRARYDIR = $(ROOT)/$(OUTPUTDIR)/lib
+export INCLUDEDIR = $(ROOT)/$(OUTPUTDIR)/include
+all:
+	mkdir -p $(BINARYDIR) $(LIBRARYDIR) $(INCLUDEDIR)
+	@for dir in $(SUBDIRS); do \
+		$(MAKE) -C $$dir; \
+	done
+.PHONY:all
 clean:
-	$(RM) -r $(BINARYDIR)
-.PHONY:clean
-
+	@for dir in $(SUBDIRS); do \
+		$(MAKE) -C $$dir clean; \
+	done
+	$(RM) -r $(OUTPUTDIR)
+.PHONY: clean
+endif
